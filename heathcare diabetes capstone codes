@@ -1,0 +1,318 @@
+#week 1 task to upload and clean data with important libraries
+
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+%matplotlib inline 
+import warnings
+warnings.filterwarnings('ignore')
+from sklearn import metrics
+
+
+#Uploading the data and EDA 
+
+hcd= pd.read_csv("healthcarediabetes.csv")
+hcd.head(10)
+
+
+hcd.dtypes
+
+print("Standard Deviation of each variables are ==> ")
+hcd.apply(np.std)
+
+hcd.isnull().any()
+
+hcd.info()
+
+Positive = hcd[hcd['Outcome']==1]
+Positive.head(10)
+
+hcd.describe()
+
+hcd['Glucose'].value_counts().head(10)
+
+2.EXPLORING THE VARIABLES WITH THE HELP OF HISTOGRAMS AND COUNT OF 
+VARIABLES. : 
+
+plt.hist(hcd['Glucose'])
+print("Mean of Glucose level is :-", hcd['Glucose'].mean())
+print("Datatype of Glucose Variable is:",hcd['Glucose'].dtypes)
+
+hcd['BloodPressure'].value_counts().head(10)
+
+plt.hist(hcd['BloodPressure'])
+
+print("Mean of Bloodpressure level is :-", hcd['BloodPressure'].mean())
+print("Datatype of bloddpressure Variable is:",hcd['BloodPressure'].dtypes)
+
+hcd['SkinThickness'].value_counts().head(10)
+
+plt.hist(hcd['SkinThickness'])
+
+print("Mean of SkinThicness level is :-", hcd['SkinThickness'].mean())
+print("Datatype of SkinTHICKNESS Variable is:",hcd['SkinThickness'].dtypes)
+
+hcd['BMI'].value_counts().head(10)
+plt.hist(hcd['BMI'])
+print("Mean of BMI level is :-", hcd['BMI'].mean())
+print("Datatype of Glucose Variable is:",hcd['BMI'].dtypes)
+
+hcd.describe().transpose()
+plt.figure(figsize=(5,3),dpi=100)
+plt.title('Checking Missing Value with Heatmap')
+sns.heatmap(hcd.isnull(),cmap='magma',yticklabels=False)
+
+week 2 task Data Exploration
+1. Check the balance of the data by plotting the count of outcomes by their value. Describe your 
+findings and plan future course of action. 
+2. Create scatter charts between the pair of variables to understand the relationships. Describe 
+your findings. 
+3. Perform correlation analysis. Visually explore it using a heat map.
+
+sns.set_style('darkgrid')
+sns.countplot(hcd['Outcome'])
+plt.title("Countplot of Outcome")
+plt.xlabel('Outcome')
+plt.ylabel("Count")
+print("Count of class is:\n",hcd['Outcome'].value_counts())
+
+
+#scatter plots 
+
+sns.set(style="ticks", color_codes= True)
+g= sns.pairplot(hcd,hue="Outcome")
+
+3. CORRELATION ANALYSIS: 
+hcd.corr()
+
+plt.figure(dpi=80)
+plt.subplots(figsize=(8,8))
+sns.heatmap(hcd.corr(),annot= True)
+
+WEEK 3 TASK : DATA MODELING : 
+1. Devise strategies for model building. It is important to decide the right validation 
+framework. Express your thought process. 
+- in this task I have used Standard scaling , Normalization and Random forest for 
+model validation. 
+The terms normalization and standardization are sometimes used interchangeably, but 
+they usually refer to different things. Normalization usually means to scale a variable to 
+have values between 0 and 1, while standardization transforms data to have a mean of 
+zero and a standard deviation of 1. This standardization is called a z-score. 
+Random forest builds multiple decision trees and merges them together to 
+get a more accurate and stable prediction. Random forest has nearly the 
+same hyperparameters as a decision tree or a bagging classifier.
+2. Apply an appropriate classification algorithm to build a model. Compare various models with 
+the results from KNN algorithm
+
+x=hcd.iloc[:,:-1].values
+y=hcd.iloc[:,-1].values
+from sklearn.model_selection import train_test_split
+x_train,x_test,y_train,y_test=train_test_split(x,y,test_size=0.20,random_state=0)
+print(x_train.shape)
+print(x_test.shape)
+print(y_train.shape)
+print(y_test.shape)
+
+from sklearn.preprocessing import StandardScaler
+Scale=StandardScaler()
+x_train_std=Scale.fit_transform(x_train)
+x_test_std=Scale.transform(x_test)
+norm=lambda a:(a-min(a))/(max(a)-min(a))
+hcd_norm=hcd.iloc[:,:-1]
+hcd_normalized=hcd_norm.apply(norm)
+x_train_norm,x_test_norm,y_train_norm,y_test_norm=train_test_split(hcd_normalized.values,y,test_size=0.20,random_state=0)
+print(x_train_norm.shape)
+print(x_test_norm.shape)
+print(y_train_norm.shape)
+print(y_test_norm.shape)
+
+KNN with standard scaling
+
+from sklearn.neighbors import KNeighborsClassifier
+knn_model = KNeighborsClassifier(n_neighbors=25) 
+#Using 25 Neighbors just as thumb rule sqrt of observation
+knn_model.fit(x_train_std,y_train)
+knn_pred=knn_model.predict(x_test_std)
+
+print("Model Validation ==>\n")
+print("Accuracy Score of KNN Model::")
+print(metrics.accuracy_score(y_test,knn_pred))
+print("\n","Classification Report::")
+print(metrics.classification_report(y_test,knn_pred),'\n')
+print("\n","ROC Curve")
+knn_prob=knn_model.predict_proba(x_test_std)
+knn_prob1=knn_prob[:,1]
+fpr,tpr,thresh=metrics.roc_curve(y_test,knn_prob1)
+roc_auc_knn=metrics.auc(fpr,tpr)
+plt.figure(dpi=80)
+plt.title("ROC Curve")
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.plot(fpr,tpr,'b',label='AUC Score = %0.2f'%roc_auc_knn)
+plt.plot(fpr,fpr,'r--',color='red')
+plt.legend()
+
+
+KNN with Normalization.
+
+from sklearn.neighbors import KNeighborsClassifier
+knn_model_norm = KNeighborsClassifier(n_neighbors=25) 
+#Using 25 Neighbors just as thumb rule sqrt of observation
+knn_model_norm.fit(x_train_norm,y_train_norm)
+knn_pred_norm=knn_model_norm.predict(x_test_norm)
+
+print("Model Validation ==>\n")
+print("Accuracy Score of KNN Model with Normalization::")
+print(metrics.accuracy_score(y_test_norm,knn_pred_norm))
+print("\n","Classification Report::")
+print(metrics.classification_report(y_test_norm,knn_pred_norm),'\n')
+print("\n","ROC Curve")
+knn_prob_norm=knn_model.predict_proba(x_test_norm)
+knn_prob_norm1=knn_prob_norm[:,1]
+fpr,tpr,thresh=metrics.roc_curve(y_test_norm,knn_prob_norm1)
+roc_auc_knn=metrics.auc(fpr,tpr)
+plt.figure(dpi=80)
+plt.title("ROC Curve")
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.plot(fpr,tpr,'b',label='AUC Score = %0.2f'%roc_auc_knn)
+plt.plot(fpr,fpr,'r--',color='red')
+plt.legend()
+
+#We can clearly see that KNN with Standardization is better than Normalization, So later i will build models using Z Score Standardization and will compare with KNN
+
+#standardization
+
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler() 
+hcd_scaled = scaler.fit_transform(hcd)
+print(hcd_scaled.mean(axis=0))
+print(hcd_scaled.std(axis=0))
+#As expected, the mean of each variable is now around zero and the standard deviation is set to 1. Thus, all the variable values lie within the same range.
+
+#normalization
+#Normalization (Min-Max Scalar) :
+#In this approach, the data is scaled to a fixed range — usually 0 to 1.
+#In contrast to standardization, the cost of having this bounded range is that we will end up with smaller standard deviations,
+#which can suppress the effect of outliers. Thus MinMax Scalar is sensitive to outliers.
+
+from sklearn.preprocessing import MinMaxScaler
+scaler = MinMaxScaler() 
+hcd_scaled = scaler.fit_transform(hcd)
+
+print('means: ', hcd_scaled.mean(axis=0))
+print('std: ', hcd_scaled.std(axis=0))
+#After MinMaxScaling, the distributions are not centered at zero and the standard deviation is not 1.
+
+print('Min : ', hcd_scaled.min(axis=0))
+print('Max : ', hcd_scaled.max(axis=0))
+
+#But the minimum and maximum values are standardized across variables, different from what occurs with standardization
+
+Support Vectore Classifier
+from sklearn.svm import SVC
+svc_model_linear = SVC(kernel='linear',random_state=0,probability=True,C=0.01) 
+svc_model_linear.fit(x_train_std,y_train)
+svc_pred=svc_model_linear.predict(x_test_std)
+
+print("Model Validation ==>\n")
+print("Accuracy Score of SVC Model with Linear Kernel::")
+print(metrics.accuracy_score(y_test,svc_pred))
+print("\n","Classification Report::")
+print(metrics.classification_report(y_test,svc_pred),'\n')
+print("\n","ROC Curve")
+svc_prob_linear=svc_model_linear.predict_proba(x_test_std)
+svc_prob_linear1=svc_prob_linear[:,1]
+fpr,tpr,thresh=metrics.roc_curve(y_test,svc_prob_linear1)
+roc_auc_svc=metrics.auc(fpr,tpr)
+plt.figure(dpi=80)
+plt.title("ROC Curve")
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.plot(fpr,tpr,'b',label='AUC Score = %0.2f'%roc_auc_svc)
+plt.plot(fpr,fpr,'r--',color='red')
+plt.legend()
+
+from sklearn.svm import SVC
+svc_model_rbf = SVC(kernel='rbf',random_state=0,probability=True,C=1) 
+svc_model_rbf.fit(x_train_std,y_train)
+svc_pred_rbf=svc_model_rbf.predict(x_test_std)
+
+print("Model Validation ==>\n")
+print("Accuracy Score of SVC Model with RBF Kernel::")
+print(metrics.accuracy_score(y_test,svc_pred_rbf))
+print("\n","Classification Report::")
+print(metrics.classification_report(y_test,svc_pred_rbf),'\n')
+print("\n","ROC Curve")
+svc_prob_rbf=svc_model_linear.predict_proba(x_test_std)
+svc_prob_rbf1=svc_prob_rbf[:,1]
+fpr,tpr,thresh=metrics.roc_curve(y_test,svc_prob_rbf1)
+roc_auc_svc=metrics.auc(fpr,tpr)
+plt.figure(dpi=80)
+plt.title("ROC Curve")
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.plot(fpr,tpr,'b',label='AUC Score = %0.2f'%roc_auc_svc)
+plt.plot(fpr,fpr,'r--',color='red')
+plt.legend()
+#SVC with Linear Kernel is better than RBF Kernel, This was actually expected beause variables are somewhat depending linearly with outcomeComparing with KNN
+Both Models are working fine , but SVC Linear with C=0.01 is better in terms of AUC Score.
+
+Logistic Regression
+from sklearn.linear_model import LogisticRegression
+lr_model = LogisticRegression(C=0.01) 
+lr_model.fit(x_train_std,y_train)
+lr_pred=lr_model.predict(x_test_std)
+
+print("Model Validation ==>\n")
+print("Accuracy Score of Logistic Regression Model::")
+print(metrics.accuracy_score(y_test,lr_pred))
+print("\n","Classification Report::")
+print(metrics.classification_report(y_test,lr_pred),'\n')
+print("\n","ROC Curve")
+lr_prob=lr_model.predict_proba(x_test_std)
+lr_prob1=lr_prob[:,1]
+fpr,tpr,thresh=metrics.roc_curve(y_test,lr_prob1)
+roc_auc_lr=metrics.auc(fpr,tpr)
+plt.figure(dpi=80)
+plt.title("ROC Curve")
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.plot(fpr,tpr,'b',label='AUC Score = %0.2f'%roc_auc_lr)
+plt.plot(fpr,fpr,'r--',color='red')
+plt.legend()
+
+#Accuracy of KNN is better than Logistic Regression,but auc score of Logistic regression is better
+
+Ensemble Learning(RF)
+from sklearn.ensemble import RandomForestClassifier
+rf_model = RandomForestClassifier(n_estimators=1000,random_state=0)
+rf_model.fit(x_train_std,y_train)
+rf_pred=rf_model.predict(x_test_std)
+
+print("Model Validation ==>\n")
+print("Accuracy Score of Logistic Regression Model::")
+print(metrics.accuracy_score(y_test,rf_pred))
+print("\n","Classification Report::")
+print(metrics.classification_report(y_test,rf_pred),'\n')
+print("\n","ROC Curve")
+rf_prob=rf_model.predict_proba(x_test_std)
+rf_prob1=rf_prob[:,1]
+fpr,tpr,thresh=metrics.roc_curve(y_test,rf_prob1)
+roc_auc_rf=metrics.auc(fpr,tpr)
+plt.figure(dpi=80)
+plt.plot(fpr,tpr,'b',label='AUC Score = %0.2f'%roc_auc_rf)
+plt.title("ROC Curve")
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.plot(fpr,fpr,'r--',color='red')
+plt.legend()
+#So we can see Random Forest Classifier is best among all, you might be wondering auc score is lesser by 1 than others 
+also i am considering it to be best because balance of classes between Precision and Recall is far better than other Models. So we can consider a loss in AUC by 1
+
+#creating a report summary
+from pandas_profiling import ProfileReport
+profile = ProfileReport(hcd, title="Pandas Profiling Report")
+profile = ProfileReport(hcd, title='Pandas Profiling Report', explorative=True)
+profile
